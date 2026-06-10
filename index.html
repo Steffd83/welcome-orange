@@ -7,8 +7,6 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;700;900&display=swap" rel="stylesheet">
 
-  <!-- MSAL.js — bibliothèque officielle Microsoft pour Entra ID -->
-  <script src="https://cdn.jsdelivr.net/npm/@azure/msal-browser@3/dist/msal-browser.min.js"></script>
 
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -316,132 +314,68 @@
 
       <!-- Note de configuration -->
       <div class="config-notice" id="configNotice">
-        ✅ Connecté à Microsoft Entra ID — Tenant Orange configuré
+        🔐 Authentification sécurisée via Azure Static Web Apps et Microsoft Entra ID
         
       </div>
 
     </div>
   </div>
-
-  <script>
-    // ══════════════════════════════════════════════════════
-    //  ⚙️  CONFIGURATION — à adapter à votre tenant Orange
-    // ══════════════════════════════════════════════════════
-    const MSAL_CONFIG = {
-      auth: {
-        clientId:    "6ebbc033-59ff-470c-bea6-c8be799d073e",
-        authority:   "https://login.microsoftonline.com/a3f1f3ff-1411-4d15-ae22-b74f7dc2b2d7",
-        redirectUri: window.location.origin,      // Doit être déclaré dans Azure Portal
-      },
-      cache: {
-        cacheLocation: "sessionStorage",          // sessionStorage = plus sécurisé que localStorage
-        storeAuthStateInCookie: false,
-      }
-    };
-
-    // Scopes demandés — openid + profile suffisent pour récupérer nom/email
-    const LOGIN_SCOPES = ["openid", "profile", "User.Read"];
-
-    // ══════════════════════════════════════════════════════
-    //  Initialisation MSAL
-    // ══════════════════════════════════════════════════════
-    let msalInstance;
+<script>
+async function getUser() {
     try {
-      msalInstance = new msal.PublicClientApplication(MSAL_CONFIG);
-    } catch(e) {
-      console.warn("MSAL non initialisé :", e);
-    }
+        const response = await fetch('/.auth/me');
 
-    // Éléments DOM
-    const btnLogin     = document.getElementById("btnLogin");
-    const btnLogout    = document.getElementById("btnLogout");
-    const userProfile  = document.getElementById("userProfile");
-    const userAvatar   = document.getElementById("userAvatar");
-    const userName     = document.getElementById("userName");
-    const userEmail    = document.getElementById("userEmail");
-    const errorMsg     = document.getElementById("errorMsg");
-    const configNotice = document.getElementById("configNotice");
-
-    // ── Affichage du profil après connexion ──
-    function showProfile(account) {
-      const name  = account.name  || account.username || "Utilisateur";
-      const email = account.username || "";
-      const initials = name.split(" ").map(p => p[0]).join("").toUpperCase().slice(0,2);
-
-      userAvatar.textContent = initials;
-      userName.textContent   = name;
-      userEmail.textContent  = email;
-
-      userProfile.classList.add("visible");
-      btnLogin.style.display    = "none";
-      configNotice.style.display = "none";
-      errorMsg.classList.remove("visible");
-    }
-
-    function showError(msg) {
-      errorMsg.textContent = msg;
-      errorMsg.classList.add("visible");
-      btnLogin.classList.remove("loading");
-      btnLogin.disabled = false;
-    }
-
-    // ── Connexion ──
-    async function login() {
-      if (!msalInstance) {
-        showError("MSAL non initialisé. Vérifiez votre CLIENT_ID / TENANT_ID.");
-        return;
-      }
-      btnLogin.classList.add("loading");
-      btnLogin.disabled = true;
-      errorMsg.classList.remove("visible");
-
-      try {
-        // Popup SSO — préférable à redirect pour les SPA simples
-        const result = await msalInstance.loginPopup({ scopes: LOGIN_SCOPES });
-        if (result?.account) showProfile(result.account);
-      } catch (err) {
-        if (err.errorCode === "user_cancelled") {
-          // L'utilisateur a fermé la popup — pas une vraie erreur
-          btnLogin.classList.remove("loading");
-          btnLogin.disabled = false;
-        } else {
-          console.error(err);
-          showError("Erreur de connexion : " + (err.message || err.errorCode));
+        if (!response.ok) {
+            window.location.href = '/.auth/login/aad';
+            return;
         }
-      }
+
+        const data = await response.json();
+
+        if (!data.clientPrincipal) {
+            window.location.href = '/.auth/login/aad';
+            return;
+        }
+
+        const user = data.clientPrincipal;
+
+        const name = user.userDetails || "Utilisateur";
+        const initials = name
+            .split(" ")
+            .map(x => x[0])
+            .join("")
+            .toUpperCase()
+            .substring(0, 2);
+
+        document.getElementById("userAvatar").textContent = initials;
+        document.getElementById("userName").textContent = name;
+        document.getElementById("userEmail").textContent = user.userId || "";
+
+        document.getElementById("userProfile").classList.add("visible");
+        document.getElementById("btnLogin").style.display = "none";
+        document.getElementById("configNotice").style.display = "none";
+
+    } catch (e) {
+        console.error(e);
+        window.location.href = '/.auth/login/aad';
     }
+}
 
-    // ── Déconnexion ──
-    async function logout() {
-      if (!msalInstance) return;
-      const accounts = msalInstance.getAllAccounts();
-      if (accounts.length > 0) {
-        await msalInstance.logoutPopup({ account: accounts[0] });
-      }
-      userProfile.classList.remove("visible");
-      btnLogin.style.display    = "";
-      configNotice.style.display = "";
-    }
+function logout() {
+    window.location.href = '/.auth/logout';
+}
 
-    // ── Vérification d'une session existante au chargement ──
-    async function checkExistingSession() {
-      if (!msalInstance) return;
-      try {
-        await msalInstance.handleRedirectPromise();
-        const accounts = msalInstance.getAllAccounts();
-        if (accounts.length > 0) showProfile(accounts[0]);
-      } catch(e) {
-        console.warn("Pas de session active.", e);
-      }
-    }
+document
+    .getElementById("btnLogout")
+    .addEventListener("click", logout);
 
-    // ── Events ──
-    btnLogin.addEventListener("click", login);
-    btnLogout.addEventListener("click", logout);
+document
+    .getElementById("btnLogin")
+    .addEventListener("click", () => {
+        window.location.href = '/.auth/login/aad';
+    });
 
-    // Vérification session au démarrage
-    checkExistingSession();
-  </script>
-
+getUser();
+</script>
 </body>
 </html>
