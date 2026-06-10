@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Bienvenue chez Orange</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;700;900&display=swap" rel="stylesheet">
+
+  <!-- MSAL.js — bibliothèque officielle Microsoft pour Entra ID -->
+  <script src="https://alcdn.msauth.net/browser/2.38.3/js/msal-browser.min.js"></script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --orange:    #FF7900;
+      --orange-dk: #E06000;
+      --black:     #000000;
+      --white:     #FFFFFF;
+      --grey:      #F5F5F5;
+      --ms-blue:   #0078D4;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--white);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    /* ── Background accent ── */
+    .bg-circle { position: fixed; border-radius: 50%; pointer-events: none; }
+    .bg-circle-1 {
+      width: 700px; height: 700px; top: -200px; right: -180px;
+      background: radial-gradient(circle, #FF790022 0%, transparent 70%);
+    }
+    .bg-circle-2 {
+      width: 500px; height: 500px; bottom: -150px; left: -120px;
+      background: radial-gradient(circle, #FF790015 0%, transparent 70%);
+    }
+
+    /* ── Card ── */
+    .card {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2rem;
+      padding: 3.5rem 4.5rem;
+      background: var(--white);
+      border-radius: 2rem;
+      box-shadow: 0 0 0 1px rgba(0,0,0,.06), 0 24px 80px rgba(0,0,0,.10);
+      animation: fadeUp .7s ease both;
+      min-width: 360px;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(28px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── Logo ── */
+    .logo-wrap {
+      display: flex; flex-direction: column; align-items: center; gap: .6rem;
+    }
+
+    .logo-svg { width: 160px; height: 160px; filter: drop-shadow(0 8px 24px rgba(255,121,0,.35)); }
+
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0px) rotate(-2deg); }
+      50%       { transform: translateY(-10px) rotate(2deg); }
+    }
+    .mascot-group { animation: bounce 2s ease-in-out infinite; transform-origin: center bottom; }
+
+    @keyframes wiggle {
+      0%, 100% { transform: rotate(-8deg); }
+      50%       { transform: rotate(8deg); }
+    }
+    .antenna { transform-origin: 100px 52px; animation: wiggle 1s ease-in-out infinite; }
+
+    @keyframes blink {
+      0%, 90%, 100% { transform: scaleY(1); }
+      95%           { transform: scaleY(0.08); }
+    }
+    .eye-left  { transform-origin: 78px 100px;  animation: blink 4s ease-in-out infinite; }
+    .eye-right { transform-origin: 122px 100px; animation: blink 4s ease-in-out infinite .15s; }
+
+    .brand-name {
+      font-size: 1.05rem; font-weight: 700; letter-spacing: .22em;
+      color: var(--orange); text-transform: uppercase;
+    }
+
+    /* ── Divider ── */
+    .divider { width: 60px; height: 3px; background: var(--orange); border-radius: 2px; opacity: .4; }
+
+    /* ── Headline ── */
+    .headline { text-align: center; }
+    .headline h1 {
+      font-size: clamp(1.8rem, 4vw, 2.8rem); font-weight: 900;
+      line-height: 1.1; color: var(--black); letter-spacing: -.02em;
+    }
+    .headline h1 span { color: var(--orange); }
+    .headline p {
+      margin-top: .7rem; font-size: .95rem; font-weight: 300;
+      color: #777; letter-spacing: .01em;
+    }
+
+    /* ── Section auth ── */
+    .auth-section { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 1rem; }
+
+    /* ── Bouton SSO Microsoft ── */
+    .btn-sso {
+      display: flex; align-items: center; gap: .75rem;
+      padding: .85rem 1.8rem;
+      background: var(--ms-blue);
+      color: white;
+      border: none;
+      border-radius: .75rem;
+      font-family: 'Inter', sans-serif;
+      font-size: .95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background .2s, transform .1s, box-shadow .2s;
+      box-shadow: 0 4px 16px rgba(0,120,212,.3);
+      width: 100%;
+      justify-content: center;
+    }
+    .btn-sso:hover  { background: #006CBE; box-shadow: 0 6px 20px rgba(0,120,212,.4); transform: translateY(-1px); }
+    .btn-sso:active { transform: translateY(0); }
+    .btn-sso:disabled { opacity: .6; cursor: not-allowed; transform: none; }
+
+    /* Logo Microsoft SVG inline */
+    .ms-logo { width: 20px; height: 20px; flex-shrink: 0; }
+
+    /* ── Bouton déconnexion ── */
+    .btn-logout {
+      display: flex; align-items: center; gap: .5rem;
+      padding: .6rem 1.2rem;
+      background: transparent;
+      color: #888;
+      border: 1.5px solid #ddd;
+      border-radius: .6rem;
+      font-family: 'Inter', sans-serif;
+      font-size: .85rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: border-color .2s, color .2s;
+    }
+    .btn-logout:hover { border-color: #bbb; color: #444; }
+
+    /* ── Profil utilisateur connecté ── */
+    .user-profile {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: .6rem;
+      width: 100%;
+    }
+    .user-profile.visible { display: flex; }
+
+    .avatar {
+      width: 56px; height: 56px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--orange), var(--orange-dk));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.3rem; font-weight: 700; color: white;
+      box-shadow: 0 4px 14px rgba(255,121,0,.35);
+    }
+    .user-name  { font-size: 1rem; font-weight: 700; color: var(--black); }
+    .user-email { font-size: .82rem; color: #888; font-weight: 300; }
+
+    .badge-connected {
+      display: inline-flex; align-items: center; gap: .4rem;
+      background: #e8f5e9; color: #2e7d32;
+      font-size: .75rem; font-weight: 600;
+      padding: .25rem .7rem; border-radius: 999px;
+    }
+    .badge-dot { width: 7px; height: 7px; border-radius: 50%; background: #43a047; }
+
+    /* ── Séparateur "ou" ── */
+    .separator {
+      display: flex; align-items: center; gap: .7rem;
+      width: 100%; color: #ccc; font-size: .8rem;
+    }
+    .separator::before, .separator::after {
+      content: ''; flex: 1; height: 1px; background: #eee;
+    }
+
+    /* ── Message d'erreur ── */
+    .error-msg {
+      display: none;
+      font-size: .8rem; color: #c0392b;
+      background: #fdf0ef; border: 1px solid #f5c6c2;
+      border-radius: .5rem; padding: .5rem .9rem;
+      text-align: center; width: 100%;
+    }
+    .error-msg.visible { display: block; }
+
+    /* ── Spinner ── */
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner {
+      width: 18px; height: 18px;
+      border: 2px solid rgba(255,255,255,.4);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      display: none;
+    }
+    .btn-sso.loading .spinner { display: block; }
+    .btn-sso.loading .btn-label { display: none; }
+
+    /* ── Note de config ── */
+    .config-notice {
+      font-size: .75rem; color: #aaa; text-align: center;
+      border: 1px dashed #ddd; border-radius: .5rem;
+      padding: .6rem .9rem; width: 100%;
+      line-height: 1.5;
+    }
+    .config-notice code {
+      font-family: monospace; background: #f5f5f5;
+      padding: .1rem .3rem; border-radius: 3px; font-size: .72rem;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="bg-circle bg-circle-1"></div>
+  <div class="bg-circle bg-circle-2"></div>
+
+  <div class="card">
+
+    <!-- Logo mascotte -->
+    <div class="logo-wrap">
+      <svg class="logo-svg" viewBox="0 0 200 210" xmlns="http://www.w3.org/2000/svg">
+        <g class="antenna">
+          <line x1="100" y1="52" x2="100" y2="22" stroke="#FF7900" stroke-width="4" stroke-linecap="round"/>
+          <circle cx="100" cy="17" r="8" fill="#FF7900"/>
+          <circle cx="100" cy="17" r="4" fill="white"/>
+        </g>
+        <g class="mascot-group">
+          <rect x="30" y="52" width="140" height="120" rx="50" ry="50" fill="#FF7900"/>
+          <ellipse cx="72" cy="76" rx="18" ry="10" fill="white" opacity="0.25" transform="rotate(-20 72 76)"/>
+          <circle cx="28"  cy="108" r="16" fill="#FF7900"/>
+          <circle cx="172" cy="108" r="16" fill="#FF7900"/>
+          <circle cx="54"  cy="130" r="12" fill="#FF4400" opacity="0.22"/>
+          <circle cx="146" cy="130" r="12" fill="#FF4400" opacity="0.22"/>
+          <g class="eye-left">
+            <circle cx="78"  cy="100" r="18" fill="white"/>
+            <circle cx="82"  cy="103" r="10" fill="#1a1a1a"/>
+            <circle cx="86"  cy="98"  r="4"  fill="white"/>
+            <path d="M62 84 Q78 76 94 84" stroke="#1a1a1a" stroke-width="4" fill="none" stroke-linecap="round"/>
+          </g>
+          <g class="eye-right">
+            <circle cx="122" cy="100" r="18" fill="white"/>
+            <circle cx="126" cy="103" r="10" fill="#1a1a1a"/>
+            <circle cx="130" cy="98"  r="4"  fill="white"/>
+            <path d="M106 84 Q122 76 138 84" stroke="#1a1a1a" stroke-width="4" fill="none" stroke-linecap="round"/>
+          </g>
+          <path d="M70 132 Q100 158 130 132" stroke="white" stroke-width="6" fill="none" stroke-linecap="round"/>
+          <path d="M85 138 Q100 150 115 138" fill="white" opacity="0.5"/>
+          <rect x="68"  y="168" width="22" height="32" rx="11" fill="#FF7900"/>
+          <rect x="110" y="168" width="22" height="32" rx="11" fill="#FF7900"/>
+          <ellipse cx="79"  cy="200" rx="18" ry="8" fill="#E06000"/>
+          <ellipse cx="121" cy="200" rx="18" ry="8" fill="#E06000"/>
+        </g>
+      </svg>
+      <span class="brand-name">Orange</span>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Titre -->
+    <div class="headline">
+      <h1>Bienvenue<br>chez <span>Orange</span></h1>
+      <p>Connectez-vous avec votre compte entreprise.</p>
+    </div>
+
+    <!-- Zone auth -->
+    <div class="auth-section">
+
+      <!-- Profil affiché après connexion -->
+      <div class="user-profile" id="userProfile">
+        <div class="avatar" id="userAvatar">?</div>
+        <div class="user-name"  id="userName">–</div>
+        <div class="user-email" id="userEmail">–</div>
+        <span class="badge-connected"><span class="badge-dot"></span>Connecté via Entra ID</span>
+        <button class="btn-logout" id="btnLogout">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+            <polyline points="16 17 21 12 16 7"/>
+            <line x1="21" y1="12" x2="9" y2="12"/>
+          </svg>
+          Se déconnecter
+        </button>
+      </div>
+
+      <!-- Bouton de connexion -->
+      <button class="btn-sso" id="btnLogin">
+        <!-- Logo Microsoft 4 carrés colorés -->
+        <svg class="ms-logo" viewBox="0 0 21 21" xmlns="http://www.w3.org/2000/svg">
+          <rect x="1"  y="1"  width="9" height="9" fill="#F25022"/>
+          <rect x="11" y="1"  width="9" height="9" fill="#7FBA00"/>
+          <rect x="1"  y="11" width="9" height="9" fill="#00A4EF"/>
+          <rect x="11" y="11" width="9" height="9" fill="#FFB900"/>
+        </svg>
+        <span class="btn-label">Se connecter avec Microsoft</span>
+        <div class="spinner"></div>
+      </button>
+
+      <!-- Erreur éventuelle -->
+      <div class="error-msg" id="errorMsg"></div>
+
+      <!-- Note de configuration -->
+      <div class="config-notice" id="configNotice">
+        ⚙️ À configurer : remplacez <code>CLIENT_ID</code> et <code>TENANT_ID</code>
+        dans le script par vos valeurs Entra ID (Azure Portal → App registrations).
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    // ══════════════════════════════════════════════════════
+    //  ⚙️  CONFIGURATION — à adapter à votre tenant Orange
+    // ══════════════════════════════════════════════════════
+    const MSAL_CONFIG = {
+      auth: {
+        clientId:    "VOTRE_CLIENT_ID",          // App registration → Application (client) ID
+        authority:   "https://login.microsoftonline.com/VOTRE_TENANT_ID",
+        redirectUri: window.location.origin,      // Doit être déclaré dans Azure Portal
+      },
+      cache: {
+        cacheLocation: "sessionStorage",          // sessionStorage = plus sécurisé que localStorage
+        storeAuthStateInCookie: false,
+      }
+    };
+
+    // Scopes demandés — openid + profile suffisent pour récupérer nom/email
+    const LOGIN_SCOPES = ["openid", "profile", "User.Read"];
+
+    // ══════════════════════════════════════════════════════
+    //  Initialisation MSAL
+    // ══════════════════════════════════════════════════════
+    let msalInstance;
+    try {
+      msalInstance = new msal.PublicClientApplication(MSAL_CONFIG);
+    } catch(e) {
+      console.warn("MSAL non initialisé :", e);
+    }
+
+    // Éléments DOM
+    const btnLogin     = document.getElementById("btnLogin");
+    const btnLogout    = document.getElementById("btnLogout");
+    const userProfile  = document.getElementById("userProfile");
+    const userAvatar   = document.getElementById("userAvatar");
+    const userName     = document.getElementById("userName");
+    const userEmail    = document.getElementById("userEmail");
+    const errorMsg     = document.getElementById("errorMsg");
+    const configNotice = document.getElementById("configNotice");
+
+    // ── Affichage du profil après connexion ──
+    function showProfile(account) {
+      const name  = account.name  || account.username || "Utilisateur";
+      const email = account.username || "";
+      const initials = name.split(" ").map(p => p[0]).join("").toUpperCase().slice(0,2);
+
+      userAvatar.textContent = initials;
+      userName.textContent   = name;
+      userEmail.textContent  = email;
+
+      userProfile.classList.add("visible");
+      btnLogin.style.display    = "none";
+      configNotice.style.display = "none";
+      errorMsg.classList.remove("visible");
+    }
+
+    function showError(msg) {
+      errorMsg.textContent = msg;
+      errorMsg.classList.add("visible");
+      btnLogin.classList.remove("loading");
+      btnLogin.disabled = false;
+    }
+
+    // ── Connexion ──
+    async function login() {
+      if (!msalInstance) {
+        showError("MSAL non initialisé. Vérifiez votre CLIENT_ID / TENANT_ID.");
+        return;
+      }
+      btnLogin.classList.add("loading");
+      btnLogin.disabled = true;
+      errorMsg.classList.remove("visible");
+
+      try {
+        // Popup SSO — préférable à redirect pour les SPA simples
+        const result = await msalInstance.loginPopup({ scopes: LOGIN_SCOPES });
+        if (result?.account) showProfile(result.account);
+      } catch (err) {
+        if (err.errorCode === "user_cancelled") {
+          // L'utilisateur a fermé la popup — pas une vraie erreur
+          btnLogin.classList.remove("loading");
+          btnLogin.disabled = false;
+        } else {
+          console.error(err);
+          showError("Erreur de connexion : " + (err.message || err.errorCode));
+        }
+      }
+    }
+
+    // ── Déconnexion ──
+    async function logout() {
+      if (!msalInstance) return;
+      const accounts = msalInstance.getAllAccounts();
+      if (accounts.length > 0) {
+        await msalInstance.logoutPopup({ account: accounts[0] });
+      }
+      userProfile.classList.remove("visible");
+      btnLogin.style.display    = "";
+      configNotice.style.display = "";
+    }
+
+    // ── Vérification d'une session existante au chargement ──
+    async function checkExistingSession() {
+      if (!msalInstance) return;
+      try {
+        await msalInstance.handleRedirectPromise();
+        const accounts = msalInstance.getAllAccounts();
+        if (accounts.length > 0) showProfile(accounts[0]);
+      } catch(e) {
+        console.warn("Pas de session active.", e);
+      }
+    }
+
+    // ── Events ──
+    btnLogin.addEventListener("click", login);
+    btnLogout.addEventListener("click", logout);
+
+    // Vérification session au démarrage
+    checkExistingSession();
+  </script>
+
+</body>
+</html>
