@@ -8,7 +8,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;700;900&display=swap" rel="stylesheet">
 
   <!-- MSAL.js — bibliothèque officielle Microsoft pour Entra ID -->
-  <script src="https://alcdn.msauth.net/browser/2.38.3/js/msal-browser.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@azure/msal-browser@3/dist/msal-browser.min.js"></script>
 
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -316,8 +316,8 @@
 
       <!-- Note de configuration -->
       <div class="config-notice" id="configNotice">
-        ⚙️ À configurer : remplacez <code>CLIENT_ID</code> et <code>TENANT_ID</code>
-        dans le script par vos valeurs Entra ID (Azure Portal → App registrations).
+        ✅ Connecté à Microsoft Entra ID — Tenant Orange configuré
+        
       </div>
 
     </div>
@@ -329,7 +329,7 @@
     // ══════════════════════════════════════════════════════
     const MSAL_CONFIG = {
       auth: {
-        clientId:    "6ebbc033-59ff-470c-bea6-c8be799d073e",          // App registration → Application (client) ID
+        clientId:    "6ebbc033-59ff-470c-bea6-c8be799d073e",
         authority:   "https://login.microsoftonline.com/a3f1f3ff-1411-4d15-ae22-b74f7dc2b2d7",
         redirectUri: window.location.origin,      // Doit être déclaré dans Azure Portal
       },
